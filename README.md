@@ -2,6 +2,7 @@
 
 [![GitHub Marketplace](https://img.shields.io/badge/Marketplace-Deploy%20to%20Cloud%20Run-blue?logo=github)](https://github.com/marketplace/actions/deploy-to-google-cloud-run-with-env-support)
 [![License](https://img.shields.io/badge/license-Commercial-green)](#license)
+[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github)](https://github.com/sponsors/MiraiioIN)
 
 A GitHub Action that builds, pushes, and deploys your application to **Google Cloud Run** with first-class support for environment variables. Your `.env` file is passed as a **Base32-encoded GitHub Secret**, decoded at deploy time, and converted to Cloud Run's native env-vars YAML format — no secrets ever touch your repo.
 
