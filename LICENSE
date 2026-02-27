@@ -1,0 +1,46 @@
+Commercial License
+
+Copyright (c) 2026. All rights reserved.
+
+This software and associated documentation files (the "Software") are the
+proprietary property of the copyright holder. The Software is licensed, not
+sold.
+
+GRANT OF LICENSE
+
+Subject to payment of the applicable license fees and compliance with these
+terms, the copyright holder grants you a limited, non-exclusive,
+non-transferable, non-sublicensable license to use the Software solely in
+connection with GitHub Actions workflows within your organization.
+
+RESTRICTIONS
+
+You may NOT:
+  1. Copy, modify, merge, or create derivative works of the Software
+  2. Distribute, sublicense, sell, lease, or otherwise transfer the Software
+  3. Reverse engineer, decompile, or disassemble the Software
+  4. Remove or alter any proprietary notices or labels on the Software
+  5. Use the Software to create a competing product or service
+  6. Share access to the Software outside your licensed organization
+
+TERMINATION
+
+This license is effective until terminated. It terminates automatically if you
+breach any of its terms. Upon termination, you must cease all use of the
+Software and destroy all copies in your possession.
+
+DISCLAIMER OF WARRANTIES
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM,
+OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+LIMITATION OF LIABILITY
+
+IN NO EVENT WILL THE COPYRIGHT HOLDER BE LIABLE FOR ANY INDIRECT, INCIDENTAL,
+SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING OUT OF OR RELATING TO THE
+USE OF THE SOFTWARE, REGARDLESS OF THE THEORY OF LIABILITY.

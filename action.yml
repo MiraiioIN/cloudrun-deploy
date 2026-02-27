@@ -1,0 +1,172 @@
+name: "Deploy to Google Cloud Run (with ENV support)"
+description: "Builds, pushes, and deploys to Google Cloud Run with safe env handling (.env → YAML), Artifact Registry, and GitHub Secrets support."
+author: "krismiraiio"
+
+branding:
+  icon: upload-cloud
+  color: blue
+
+inputs:
+  service_name:
+    description: "Cloud Run service name"
+    required: true
+
+  region:
+    description: "GCP region (e.g. us-west1)"
+    required: true
+
+  project_id:
+    description: "GCP project ID"
+    required: true
+
+  image_repository:
+    description: "Artifact Registry repository name"
+    required: true
+
+  env_file_base32:
+    description: "Base32-encoded .env file contents (use `base32 < .env` to generate)"
+    required: true
+
+  gcp_sa_key:
+    description: "GCP service account JSON key (raw JSON, not base64)"
+    required: true
+
+  backend_path:
+    description: "Path to the directory containing your Dockerfile"
+    default: "backend"
+
+  allow_unauthenticated:
+    description: "Allow unauthenticated access to the deployed service"
+    default: "true"
+
+  cloud_run_flags:
+    description: "Additional flags to pass to `gcloud run deploy` (e.g. --memory=512Mi --cpu=1)"
+    default: ""
+
+outputs:
+  service_url:
+    description: "Deployed Cloud Run service URL"
+    value: ${{ steps.get-url.outputs.service_url }}
+
+  image_uri:
+    description: "Full URI of the pushed container image"
+    value: ${{ steps.build-push.outputs.image_uri }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Validate inputs
+      shell: bash
+      run: |
+        if [ -z "${{ inputs.service_name }}" ]; then echo "::error::service_name is required"; exit 1; fi
+        if [ -z "${{ inputs.region }}" ]; then echo "::error::region is required"; exit 1; fi
+        if [ -z "${{ inputs.project_id }}" ]; then echo "::error::project_id is required"; exit 1; fi
+        if [ -z "${{ inputs.image_repository }}" ]; then echo "::error::image_repository is required"; exit 1; fi
+
+    - name: Decode env file
+      shell: bash
+      env:
+        ENV_FILE_BASE32: ${{ inputs.env_file_base32 }}
+      run: |
+        echo "$ENV_FILE_BASE32" | base32 -d > env.decoded
+        cp env.decoded ${{ inputs.backend_path }}/.env
+
+    - name: Prepare GCP SA key (base64)
+      shell: bash
+      env:
+        GCP_SA_KEY: ${{ inputs.gcp_sa_key }}
+      run: |
+        echo -n "$GCP_SA_KEY" | base64 -w 0 > gcp_sa_b64.txt
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ inputs.gcp_sa_key }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ inputs.project_id }}
+
+    - name: Configure Docker for Artifact Registry
+      shell: bash
+      run: |
+        gcloud auth configure-docker ${{ inputs.region }}-docker.pkg.dev --quiet
+
+    - name: Build and push Docker image
+      id: build-push
+      shell: bash
+      run: |
+        IMAGE_URI="${{ inputs.region }}-docker.pkg.dev/${{ inputs.project_id }}/${{ inputs.image_repository }}/${{ inputs.service_name }}:${{ github.sha }}"
+        docker build -t "$IMAGE_URI" -f "${{ inputs.backend_path }}/Dockerfile" "./${{ inputs.backend_path }}"
+        docker push "$IMAGE_URI"
+        echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+        echo "image_uri=$IMAGE_URI" >> $GITHUB_OUTPUT
+
+    - name: Convert env to Cloud Run YAML
+      shell: bash
+      run: |
+        cat > env-to-yaml.js << 'EOF'
+        const fs = require('fs');
+        const lines = fs.readFileSync('env.decoded', 'utf8').split(/\r?\n/);
+        const out = [];
+        function escape(val) {
+          return val.replace(/\\/g, '\\\\')
+                    .replace(/"/g, '\\"')
+                    .replace(/\n/g, '\\n');
+        }
+        for (const line of lines) {
+          const trimmed = line.replace(/#.*/, '').trim();
+          if (!trimmed || !trimmed.includes('=')) continue;
+          const eq = trimmed.indexOf('=');
+          const key = trimmed.slice(0, eq).trim();
+          let val = trimmed.slice(eq + 1).trim();
+          if (
+            (val.startsWith('"') && val.endsWith('"')) ||
+            (val.startsWith("'") && val.endsWith("'"))
+          ) {
+            val = val.slice(1, -1);
+          }
+          out.push(`${key}: "${escape(val)}"`);
+        }
+        try {
+          const b64 = fs.readFileSync('gcp_sa_b64.txt', 'utf8').trim();
+          if (b64) out.push(`GCP_SA_KEY_B64: "${escape(b64)}"`);
+        } catch {}
+        fs.writeFileSync('env.yaml', out.join('\n'));
+        EOF
+        node env-to-yaml.js
+
+    - name: Deploy to Cloud Run
+      shell: bash
+      run: |
+        AUTH_FLAG=""
+        if [ "${{ inputs.allow_unauthenticated }}" = "true" ]; then
+          AUTH_FLAG="--allow-unauthenticated"
+        else
+          AUTH_FLAG="--no-allow-unauthenticated"
+        fi
+
+        gcloud run deploy ${{ inputs.service_name }} \
+          --image="$IMAGE_URI" \
+          --region=${{ inputs.region }} \
+          --platform=managed \
+          --env-vars-file=env.yaml \
+          $AUTH_FLAG \
+          ${{ inputs.cloud_run_flags }}
+
+    - name: Get service URL
+      id: get-url
+      shell: bash
+      run: |
+        URL=$(gcloud run services describe ${{ inputs.service_name }} \
+          --region=${{ inputs.region }} \
+          --format='value(status.url)')
+        echo "service_url=$URL" >> $GITHUB_OUTPUT
+
+    - name: Cleanup sensitive files
+      if: always()
+      shell: bash
+      run: |
+        rm -f env.decoded env.yaml env-to-yaml.js gcp_sa_b64.txt
+        rm -f ${{ inputs.backend_path }}/.env

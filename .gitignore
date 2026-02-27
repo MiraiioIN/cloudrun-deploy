@@ -1,0 +1,14 @@
+*.env
+.env.*
+!.env.example
+
+env.decoded
+env.yaml
+env-to-yaml.js
+gcp_sa_b64.txt
+
+node_modules/
+.DS_Store
+Thumbs.db
+
+*.log
