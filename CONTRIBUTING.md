@@ -26,7 +26,7 @@ Do **not** open a public issue for security vulnerabilities. See [SECURITY.md](S
 
 ## Code Contributions
 
-This is a commercial product. Code contributions are accepted on a case-by-case basis:
+We welcome code contributions:
 
 1. Open an issue first to discuss the change
 2. Fork the repository
